@@ -1,0 +1,43 @@
+## Place your answers here.
+
+exploit-2a.py:
+For this exploit, I am exploiting the reqpath buffer in process_client() (in zookd.c) function. Here I am overwriting the return address of process_client() function.
+
+exploit-2b.py
+For this exploit, I am exploiting the pn buffer in http_serve() (in http.c) function. Here I am overwriting the handler pointer.
+
+exploit-3.py
+For this exploit, I am exploiting the pn buffer and injecting unlink code in the pn buffer (exploiting bug 4 in bugs.txt). 
+Bugs 1,2 and 3 can be exploited and used to inject code.
+Bug 5 cannot be used as even before we exploit it segmentation fault happens and server crashes.
+
+Exercise 4:
+"value" buffer can be exploited in the same manner as "reqpath" and "pn" buffers but not "name" buffer because segmentation fault comes before we overflow this buffer and  "envvar" buffer as the path which we send in the string is converted toUpper.
+
+Exercise 5:
+Vulnerability-1:
+Any file in the server can be seen. 
+For example sending request in the form of 
+"GET /../grades.txt HTTP/1.0\r\n" + \
+            "\r\n"
+shows the content of grades.txt and 
+"GET /../../../etc/passwd HTTP/1.0\r\n" + \
+            "\r\n"
+shows the content of passwd file
+because since in these requests http_serve_file function is called and it shows the content of these files.
+Attacker can see the grades file, passwd file and many other secret files.
+We can prevent this by setting up jailkit.
+
+Vulnerability-2:
+DOS(denial-of-service) attack can be made by the attacker.
+Without the "/n" character read function in http_read_line is waiting for input.
+Stings like
+"GET / HTTP/1.0\r" + \
+        "\r\n"
+and
+"GET"
+and many more (anything without \n)
+used in request makes the server waiting for input and no other request is handled. 
+To prevent this we have to handle read in different process.
+That is we have to fork() and make a newprocess for reading.
+

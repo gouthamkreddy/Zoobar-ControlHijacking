@@ -1,0 +1,63 @@
+#
+# [file:#lines]
+# desc
+#
+
+[zookd.c:1612]
+description goes here. for example, the 'buf' variable can be
+overwritten by the 'msg' variable because ...
+
+    <paste offending line(s) of code here>
+
+[http.c:1512]
+another description.
+
+    <paste offending line(s) of code here>
+
+# many more come here
+
+[zookd.c:65]
+url_decode(reqpath, sp1) function copies content in sp1 into reqpath buffer without checking sp1 length. Here so if sp1 is long it overwrites the return address of the process_client() function, this intern crashes the server while the process_client() function return is called.
+Input string would be like:
+ "GET /" + "A"*2100+ " HTTP/1.0\r\n" + \
+ "\r\n"
+ This vulnerability can be prevented using stack canaries.
+
+url_decode(reqpath, sp1);
+
+[http.c:120]
+url_decode() function copies content in sp (that is the content in header value). If that is longer than 512 bytes, buffer value[512] overflows overwriting the return address. And so this crashes the server when the http_request_headers() function returns. 
+Input string would be like:
+ "GET / HTTP/1.0\r\n" + \
+ "HOST: "+"A"*600 + \
+ "\r\n"	
+This vulnerability can be prevented using stack canaries.
+
+url_decode(value, sp);
+
+[http.c:121]
+sprintf() copies the buffer (that is the header name) into envvari (along with HTTP_), which can be overflowed by passing a header name with many characters (greater than 1024). 1024 because to overwrite the return address both the buffers value and envvar should be overflowed as after return address both the buffers are pushed into the stack. 
+Input string would be like:
+"GET / HTTP/1.0\r\n" + \
+"A"*1100+": content" + \
+"\r\n"
+This vulnerability can also be prevented using stack canaries.
+
+sprintf(envvar, "HTTP_%s", buf);
+
+[http.c:276]
+Here if the request path is greater than 1024 bytes, pointer handler which is above the buffer in stack pn[1024] is overwritten due to the overflow of pn[1024] buffer. When this handler pointer is used in a function (that is handler here), server crashes as handler was overwritten. 
+Input string would be like:
+"GET /" + "A"*1100+ " HTTP/1.0\r\n" + \
+"\r\n"
+This cannot be prevented using stack canaries as the handler pointer can be overwritten without overwriting the return address in the stack.
+
+strcat(pn, name);
+
+[http.c:353]
+Here name[1024] buffer can be overflowed. That is when pn is long enough and it is copied to name buffer in the dir_join() function.
+This cannot be prevented using stack canaries.
+Input string:
+This should be like when http_serve is called handler should be set to http_serve_directory.
+
+dir_join(name, pn, indices[i]);
